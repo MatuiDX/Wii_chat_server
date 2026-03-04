@@ -1,0 +1,45 @@
+from flask import Flask, request, jsonify
+import requests
+
+app = Flask(__name__)
+
+CLAUDE_API_KEY = "TU_API_KEY_AQUI"
+
+@app.route('/')
+def index():
+    return "WiiChat server funcionando!"
+
+@app.route('/chat', methods=['POST', 'OPTIONS'])
+def chat():
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Allow-Methods'] = 'POST'
+        return response
+
+    data = request.get_json()
+    mensaje = data.get('mensaje', '')
+
+    resp = requests.post(
+        'https://api.anthropic.com/v1/messages',
+        headers={
+            'x-api-key': CLAUDE_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json'
+        },
+        json={
+            'model': 'claude-sonnet-4-20250514',
+            'max_tokens': 500,
+            'system': 'Respondé de forma corta y clara, sin markdown ni asteriscos. Maximo 3 oraciones.',
+            'messages': [{'role': 'user', 'content': mensaje}]
+        }
+    )
+
+    respuesta = resp.json()['content'][0]['text']
+    response = jsonify({'respuesta': respuesta})
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
